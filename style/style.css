@@ -24,7 +24,8 @@ body {
 .wrapper__main .main-cotainer {
   overflow: hidden;
   background-color: #fff;
-  height: 500px;
+  height: 600px;
+  min-height: 600px;
   max-height: -moz-fit-content;
   max-height: fit-content;
   border-radius: 10px;
@@ -32,4 +33,9 @@ body {
 }
 .wrapper__main .main-cotainer .main-view-container {
   background-color: #f1f1f1;
+}
+.wrapper__main .main-cotainer .main-view-container .table-main {
+  height: 250px;
+  overflow: hidden;
+  overflow-y: scroll;
 }/*# sourceMappingURL=style.css.map */
