@@ -103,4 +103,27 @@ $(document).ready(function () {
             `);
         });
     }
+
+    // Update data function
+    $("#updateData").on("submit", function (event) {
+        event.preventDefault();
+
+        const inputUID = $(this).find("input[aria-label='UID']").val();
+        const newRawText = $(this).find("input[aria-label='Data']").val();
+        let storedData = JSON.parse(localStorage.getItem("checksumData")) || [];
+
+        const dataIndex = storedData.findIndex((data) => data.uid === inputUID);
+
+        if (dataIndex !== -1) {
+            storedData[dataIndex].rawText = newRawText;
+
+            localStorage.setItem("checksumData", JSON.stringify(storedData));
+
+            alert(`Data for UID ${inputUID} updated. Raw text changed, checksum remains the same.`);
+        } else {
+            alert(`Error: No data found for the provided UID.`);
+        }
+
+        $(this).find("input").val("");
+    });
 });
