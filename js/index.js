@@ -20,12 +20,26 @@ $(document).ready(function () {
 
         const inputText = $("input").val();
         if (inputText) {
-            const { checksum, modulo, totalSum } = calculateArithmeticChecksum(inputText);
-            const uid = generateUUID();
+            const { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets } = calculateChecksum(inputText);
+            const uid = generateUID();
 
-            storeData(uid, inputText, checksum);
-            const asciiCodes = getAsciiCodes(inputText);
-            $("#result").html(`ASCII Codes: ${asciiCodes} <br> Total Sum of ASCII = ${totalSum} <br> Checksum: ${totalSum} mod ${modulo} = ${checksum}`);
+            storeData(uid, inputText, binaryData, checksum, fullBinaryWithChecksum);
+
+            let resultHTML = "<h4>Input Text: " + inputText + "</h4>";
+            resultHTML += "<div class='table-add-main'><table class='table'><thead><tr><th>Character</th><th>Binary</th></tr></thead><tbody>";
+
+            for (let i = 0; i < inputText.length; i++) {
+                resultHTML += `<tr><td>${inputText[i]}</td><td>${charBinaries[i]}</td></tr>`;
+            }
+
+            resultHTML += `</tbody></table></div>`;
+            resultHTML += `<p>Binary: ${binaryData}</p>`;
+            resultHTML += `<p>Binary Packets: ${packets.join(", ")}</p>`;
+            resultHTML += `<p>Sum of Binary Packets: ${binarySum}</p>`;
+            resultHTML += `<p>Checksum (1's complement): ${checksum}</p>`;
+            resultHTML += `<p>Full Binary with Checksum: ${fullBinaryWithChecksum}</p>`;
+
+            $("#result").html(resultHTML);
             $("input").val("");
         }
     });
@@ -41,12 +55,17 @@ $(document).ready(function () {
 
         const retrievedDataElement = $("#retrieved-data");
         if (retrievedData) {
-            const { checksum: recalculatedChecksum } = calculateArithmeticChecksum(retrievedData.rawText);
+            const { checksum: recalculatedChecksum } = calculateChecksum(retrievedData.rawText);
 
             if (recalculatedChecksum === retrievedData.checksum) {
-                retrievedDataElement.html(`Retrieved data successfully: ${retrievedData.rawText}`);
+                retrievedDataElement.html(`Retrieved data successfully:<br>
+                                           Raw Text: ${retrievedData.rawText}<br>
+                                           Binary Data: ${retrievedData.binaryData}<br>
+                                           Stored Checksum: ${retrievedData.checksum}<br>
+                                           Recalculated Checksum: ${recalculatedChecksum}<br>
+                                           Full Binary with Checksum: ${retrievedData.fullBinaryWithChecksum}`);
             } else {
-                retrievedDataElement.html(`Data corrupted`);
+                retrievedDataElement.html(`Data corrupted. Stored Checksum: ${retrievedData.checksum}, Recalculated Checksum: ${recalculatedChecksum}`);
             }
         } else {
             retrievedDataElement.html("Error: No data found for the provided UID.");
@@ -55,35 +74,60 @@ $(document).ready(function () {
         $(this).find("input[type='text']").val("");
     });
 
-    function calculateArithmeticChecksum(text) {
-        let sum = 0;
+    // Function to calculate checksum and manage packets
+    function calculateChecksum(text) {
+        const charBinaries = text.split("").map((char) => char.charCodeAt(0).toString(2).padStart(8, "0"));
+        const binaryData = charBinaries.join("");
+        const binaryLength = binaryData.length;
 
-        for (let i = 0; i < text.length; i++) {
-            sum += text.charCodeAt(i);
+        // Determine number of packets based on binary length
+        let packetCount;
+        if (binaryLength <= 40) {
+            packetCount = 4;
+        } else if (binaryLength <= 80) {
+            packetCount = 2;
+        } else {
+            packetCount = 8;
         }
 
-        const modulo = 256;
-        const checksum = sum % modulo;
+        const packetSize = Math.ceil(binaryLength / packetCount);
+        const packets = [];
 
-        return { checksum, modulo, totalSum: sum };
-    }
+        // Create binary packets
+        for (let i = 0; i < binaryLength; i += packetSize) {
+            packets.push(binaryData.slice(i, i + packetSize));
+        }
 
-    function getAsciiCodes(text) {
-        return text
+        // Sum the binary packets
+        const binarySum = packets
+            .reduce((acc, packet) => {
+                return acc + parseInt(packet, 2);
+            }, 0)
+            .toString(2);
+
+        // Calculate checksum
+        const checksum = binarySum
             .split("")
-            .map((char) => `${char}: ${char.charCodeAt(0)}`)
-            .join(", ");
+            .map((bit) => (bit === "0" ? "1" : "0"))
+            .join("");
+
+        const fullBinaryWithChecksum = binaryData + checksum;
+
+        return { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets };
     }
 
-    function generateUUID() {
-        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
+    function generateUID() {
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let uid = "";
+        for (let i = 0; i < 5; i++) {
+            uid += characters.charAt(Math.floor(Math.random() * characters.length));
+        }
+        return uid;
     }
 
-    function storeData(uid, rawText, checksum) {
+    function storeData(uid, rawText, binaryData, checksum, fullBinaryWithChecksum) {
         const storedData = JSON.parse(localStorage.getItem("checksumData")) || [];
-
-        storedData.push({ uid, rawText, checksum });
-
+        storedData.push({ uid, rawText, binaryData, checksum, fullBinaryWithChecksum });
         localStorage.setItem("checksumData", JSON.stringify(storedData));
     }
 
@@ -99,12 +143,13 @@ $(document).ready(function () {
                     <td>${data.uid}</td>
                     <td>${data.rawText}</td>
                     <td>${data.checksum}</td>
+                    <td>${data.fullBinaryWithChecksum}</td>
                 </tr>
             `);
         });
     }
 
-    // Update data function
+    // Update data function (only updates raw text without recalculating checksum)
     $("#updateData").on("submit", function (event) {
         event.preventDefault();
 
@@ -119,7 +164,7 @@ $(document).ready(function () {
 
             localStorage.setItem("checksumData", JSON.stringify(storedData));
 
-            alert(`Data for UID ${inputUID} updated. Raw text changed, checksum remains the same.`);
+            alert(`Raw text for UID ${inputUID} updated. Note: Checksum was not recalculated for testing.`);
         } else {
             alert(`Error: No data found for the provided UID.`);
         }

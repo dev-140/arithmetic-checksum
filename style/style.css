@@ -38,4 +38,10 @@ body {
   height: 250px;
   overflow: hidden;
   overflow-y: scroll;
+}
+
+.table-add-main {
+  height: 190px;
+  overflow: hidden;
+  overflow-y: scroll;
 }/*# sourceMappingURL=style.css.map */
