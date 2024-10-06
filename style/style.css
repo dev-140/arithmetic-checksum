@@ -22,10 +22,9 @@ body {
 }
 
 .wrapper__main .main-cotainer {
-  overflow: hidden;
+  overflow: scroll;
   background-color: #fff;
-  height: 600px;
-  min-height: 600px;
+  height: 700px;
   max-height: -moz-fit-content;
   max-height: fit-content;
   border-radius: 10px;

@@ -20,7 +20,7 @@ $(document).ready(function () {
 
         const inputText = $("input").val();
         if (inputText) {
-            const { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets } = calculateChecksum(inputText);
+            const { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets, totalSum } = calculateChecksum(inputText);
             const uid = generateUID();
 
             storeData(uid, inputText, binaryData, checksum, fullBinaryWithChecksum);
@@ -38,6 +38,7 @@ $(document).ready(function () {
             resultHTML += `<p>Sum of Binary Packets: ${binarySum}</p>`;
             resultHTML += `<p>Checksum (1's complement): ${checksum}</p>`;
             resultHTML += `<p>Full Binary with Checksum: ${fullBinaryWithChecksum}</p>`;
+            resultHTML += `<p>Total Sum (with Checksum): ${totalSum}</p>`; // Display the total sum
 
             $("#result").html(resultHTML);
             $("input").val("");
@@ -55,15 +56,23 @@ $(document).ready(function () {
 
         const retrievedDataElement = $("#retrieved-data");
         if (retrievedData) {
-            const { checksum: recalculatedChecksum } = calculateChecksum(retrievedData.rawText);
+            const { checksum: recalculatedChecksum, totalSum } = calculateChecksum(retrievedData.rawText); // Calculate total sum
+
+            // Calculate the sum's complement
+            const sumComplement = totalSum
+                .split("")
+                .map((bit) => (bit === "0" ? "1" : "0"))
+                .join("");
 
             if (recalculatedChecksum === retrievedData.checksum) {
                 retrievedDataElement.html(`Retrieved data successfully:<br>
-                                           Raw Text: ${retrievedData.rawText}<br>
-                                           Binary Data: ${retrievedData.binaryData}<br>
-                                           Stored Checksum: ${retrievedData.checksum}<br>
-                                           Recalculated Checksum: ${recalculatedChecksum}<br>
-                                           Full Binary with Checksum: ${retrievedData.fullBinaryWithChecksum}`);
+                                       Raw Text: ${retrievedData.rawText}<br>
+                                       Binary Data: ${retrievedData.binaryData}<br>
+                                       Stored Checksum: ${retrievedData.checksum}<br>
+                                       Recalculated Checksum: ${recalculatedChecksum}<br>
+                                       Full Binary with Checksum: ${retrievedData.fullBinaryWithChecksum}<br>
+                                       Total Sum (with Checksum): ${totalSum}<br>
+                                       Sum's Complement: ${sumComplement}`);
             } else {
                 retrievedDataElement.html(`Data corrupted. Stored Checksum: ${retrievedData.checksum}, Recalculated Checksum: ${recalculatedChecksum}`);
             }
@@ -113,7 +122,10 @@ $(document).ready(function () {
 
         const fullBinaryWithChecksum = binaryData + checksum;
 
-        return { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets };
+        // Calculate total sum (binary packets + checksum)
+        const totalSum = (parseInt(binarySum, 2) + parseInt(checksum, 2)).toString(2);
+
+        return { binaryData, checksum, fullBinaryWithChecksum, charBinaries, binarySum, packets, totalSum };
     }
 
     function generateUID() {

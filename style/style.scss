@@ -37,10 +37,9 @@ body {
 // content style
 .wrapper__main {
     .main-cotainer {
-        overflow: hidden;
+        overflow: scroll;
         background-color: $white;
-        height: 600px;
-        min-height: 600px;
+        height: 700px;
         max-height: fit-content;
         border-radius: 10px;
         box-shadow:
